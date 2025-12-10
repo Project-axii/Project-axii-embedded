@@ -1,25 +1,21 @@
 /*
- * Sistema de Controle Power PC via MySQL
- * Envia pulso quando detecta mudança de estado
+ * Sistema de Controle Power PC via MySQL com OTA
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 
-// Configurações WiFi
 const char* ssid = "WIfi name";
 const char* password = "Wifi password";
 
-// URL da API
 const char* apiBaseUrl = "API Link";
 
-// ID do dispositivo no banco de dados
 const int idDispositivo = 6;
 
 const int pino = D2;
 
-// Variáveis de controle
 unsigned long ultimaConsulta = 0;
 const unsigned long intervaloConsulta = 5000; 
 String estadoAnterior = ""; 
@@ -28,16 +24,19 @@ const unsigned long duracaoPulso = 500;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Sistema de Controle Power PC");
+  Serial.println("\n\nSistema de Controle Power PC com OTA");
 
   pinMode(pino, OUTPUT);
   digitalWrite(pino, LOW); 
   Serial.println("configurado - Estado: REPOUSO\n");
   
   connectWiFi();
+  setupOTA();
 }
 
 void loop() {
+  ArduinoOTA.handle();
+  
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi desconectado! Reconectando...");
     connectWiFi();
@@ -78,6 +77,59 @@ void connectWiFi() {
   }
 }
 
+void setupOTA() {
+  // Nome do dispositivo na rede
+  ArduinoOTA.setHostname("ESP8266-PowerPC");
+  
+  // Senha para OTA (recomendado por segurança)
+  ArduinoOTA.setPassword("admin123");
+  
+  // Porta OTA (padrão: 8266)
+  ArduinoOTA.setPort(8266);
+  
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else {
+      type = "filesystem";
+    }
+    Serial.println("\n=== Iniciando atualizacao OTA: " + type + " ===");
+    digitalWrite(pino, LOW);
+  });
+  
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\n=== Atualizacao concluida! ===");
+  });
+  
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progresso: %u%%\r", (progress / (total / 100)));
+  });
+  
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("\nErro[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Falha na autenticacao");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Falha ao iniciar");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Falha na conexao");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Falha ao receber");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("Falha ao finalizar");
+    }
+  });
+  
+  ArduinoOTA.begin();
+  Serial.println("=== OTA CONFIGURADO ===");
+  Serial.println("Nome: ESP8266-PowerPC");
+  Serial.println("Senha: admin123");
+  Serial.print("IP para OTA: ");
+  Serial.println(WiFi.localIP());
+  Serial.println("=======================\n");
+}
+
 void consultarDispositivo() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Sem conexao WiFi");
@@ -115,7 +167,6 @@ void consultarDispositivo() {
       bool ativo = false;
       String nome = "";
       
-      // Formato 1: {"success": true, "data": {...}}
       if (doc.containsKey("success")) {
         success = doc["success"];
         if (success && doc.containsKey("data")) {
@@ -124,7 +175,6 @@ void consultarDispositivo() {
           nome = doc["data"]["nome"].as<String>();
         }
       }
-      // Formato 2: {"id": 7, "status": "online", ...}
       else if (doc.containsKey("status")) {
         success = true;
         status = doc["status"].as<String>();

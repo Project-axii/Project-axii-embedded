@@ -1,10 +1,11 @@
 /*
- * Sistema de Controle de Lâmpada via MySQL
+ * Sistema de Controle de Lâmpada via MySQL com OTA
  */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 
 const char* ssid = "WIfi name";
 const char* password = "Wifi password";
@@ -21,16 +22,19 @@ bool releAtivo = false;
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Sistema de Controle de Lampada");
+  Serial.println("\n\nSistema de Controle de Lampada com OTA");
   
   pinMode(pinoRele, OUTPUT);
   digitalWrite(pinoRele, LOW); 
   Serial.println("Rele configurado - Estado: DESLIGADO\n");
   
   connectWiFi();
+  setupOTA();
 }
 
 void loop() {
+  ArduinoOTA.handle();
+  
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi desconectado! Reconectando...");
     connectWiFi();
@@ -69,6 +73,65 @@ void connectWiFi() {
     Serial.println("Verifique SSID e senha");
     Serial.println();
   }
+}
+
+void setupOTA() {
+  // Nome do dispositivo na rede
+  ArduinoOTA.setHostname("ESP8266-Lampada");
+  
+  // Senha para OTA (recomendado por segurança)
+  ArduinoOTA.setPassword("admin123");
+  
+  // Porta OTA (padrão: 8266)
+  ArduinoOTA.setPort(8266);
+  
+  // Callback quando OTA iniciar
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else {
+      type = "filesystem";
+    }
+    Serial.println("\n=== Iniciando atualizacao OTA: " + type + " ===");
+    // Desligar relé durante atualização por segurança
+    digitalWrite(pinoRele, LOW);
+    releAtivo = false;
+  });
+  
+  // Callback ao finalizar
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\n=== Atualizacao concluida! ===");
+  });
+  
+  // Callback de progresso
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progresso: %u%%\r", (progress / (total / 100)));
+  });
+  
+  // Callback de erro
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("\nErro[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Falha na autenticacao");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Falha ao iniciar");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Falha na conexao");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Falha ao receber");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("Falha ao finalizar");
+    }
+  });
+  
+  ArduinoOTA.begin();
+  Serial.println("=== OTA CONFIGURADO ===");
+  Serial.println("Nome: ESP8266-Lampada");
+  Serial.println("Senha: admin123");
+  Serial.print("IP para OTA: ");
+  Serial.println(WiFi.localIP());
+  Serial.println("=======================\n");
 }
 
 void consultarDispositivo() {
