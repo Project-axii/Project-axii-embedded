@@ -3,9 +3,9 @@
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 
-const char* ssid = "Juliana2.4";
-const char* password = "Juliana@2022";
-const char* apiBaseUrl = "http://192.168.0.103/tcc-axii/lampada/change-state.php";
+const char* ssid = "nome da rede";
+const char* password = "senha da rede";
+const char* apiBaseUrl = "LINK_API_DISPOSITIVOS";
 
 struct Botao {
   int pino;              
