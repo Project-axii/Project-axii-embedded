@@ -11,8 +11,34 @@ A comprehensive IoT home automation system built with ESP8266 microcontrollers. 
 - **State Change Detection**: Intelligent monitoring and response to device state changes
 - **WiFi Connectivity**: Reliable WiFi connection with automatic reconnection
 
+## 🏗️ System Architecture
+
+The system consists of multiple ESP8266-based devices that communicate with a central API server:
+
+```
+┌─────────────────┐
+│   API Server    │ ← Central control and database
+│   (MySQL DB)    │
+└────────┬────────┘
+         │
+    ┌────┴────┬──────────┬─────────┐
+    │         │          │         │
+┌───▼───┐ ┌──▼───┐  ┌───▼────┐ ┌──▼─────┐
+│ AX-LM │ │Power │  │ Nexus  │ │ Other  │
+│ID: 7  │ │Link  │  │Hub     │ │Devices │
+│       │ │ID: 6 │  │Controls│ │ID: 4,5 │
+└───────┘ └──────┘  │all devs│ └────────┘
+                    └────────┘
+```
+
+**Control Flow:**
+- **Automated Controllers** (AX-LM, Power Link): Poll API status → Execute actions automatically
+- **Manual Controller** (Nexus): Button press → Update API → Other devices respond to status change
+- This allows both automatic and manual control of the same devices through the API
+
 ## 📋 Table of Contents
 
+- [System Architecture](#system-architecture)
 - [Components](#components)
 - [Hardware Requirements](#hardware-requirements)
 - [Software Dependencies](#software-dependencies)
@@ -60,7 +86,7 @@ Manages PC power by sending pulse signals to the power button. Detects state cha
 ### 3. Nexus (Multi-Button Control Hub)
 Located in `/Nexus/`
 
-A central control hub with 4 physical buttons for controlling multiple devices. Each button can toggle a different device's status.
+A central control hub with 4 physical buttons for controlling multiple devices. Each button can toggle a different device's status through the API.
 
 **Features:**
 - 4 independent button inputs with debouncing
@@ -76,6 +102,8 @@ A central control hub with 4 physical buttons for controlling multiple devices. 
 - Button 4 (D8) - Lighting (Device ID: 5)
 
 **OTA Hostname:** ESP8266-Controle
+
+> **Note:** The Nexus hub provides centralized control for devices in the system. Some device IDs (like 6 and 7) may correspond to devices managed by the AX-LM and Power Link controllers, allowing multiple control methods for the same device. The Nexus provides manual button control while the other components provide automated control based on API status.
 
 ## 🔧 Hardware Requirements
 
