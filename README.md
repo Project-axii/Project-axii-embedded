@@ -1,306 +1,211 @@
-# Project AXII Embedded
+<div align="center">
 
-A comprehensive IoT home automation system built with ESP8266 microcontrollers. This project provides intelligent control of various devices through a centralized API, featuring three main components for lamp control, PC power management, and a multi-button control nexus.
+<img src="https://lfcostldktmoevensqdj.supabase.co/storage/v1/object/public/axii/white-logo.svg" alt="AXII Logo" width="120" />
 
-## 🌟 Features
+# AXII — Embedded (Firmware IoT)
 
-- **Remote Device Control**: Control devices via HTTP API with MySQL database integration
-- **Real-time Status Monitoring**: Continuous device status checking with 5-second intervals
-- **OTA Updates**: Over-The-Air firmware updates for easy maintenance
-- **Multi-Device Support**: Control lamps, PCs, projectors, and air conditioning
-- **State Change Detection**: Intelligent monitoring and response to device state changes
-- **WiFi Connectivity**: Reliable WiFi connection with automatic reconnection
+**Firmware dos dispositivos físicos do sistema AXII para automação de salas de aula, desenvolvido com ESP8266 e programado em C++ via Arduino IDE.**
 
-## 🏗️ System Architecture
+[![Arduino](https://img.shields.io/badge/Arduino-IDE-00979D?logo=arduino&logoColor=white)](https://www.arduino.cc/)
+[![ESP8266](https://img.shields.io/badge/ESP8266-WeMos_D1_Mini-blue)](https://www.wemos.cc/)
+[![C++](https://img.shields.io/badge/C++-firmware-00599C?logo=cplusplus&logoColor=white)](https://isocpp.org/)
+[![IoT](https://img.shields.io/badge/IoT-WiFi_%2B_OTA-green)](https://en.wikipedia.org/wiki/Internet_of_things)
+[![Licença MIT](https://img.shields.io/badge/licença-MIT-blue)](LICENSE)
 
-The system consists of multiple ESP8266-based devices that communicate with a central API server:
+</div>
 
-```
-┌─────────────────┐
-│   API Server    │ ← Central control and database
-│   (MySQL DB)    │
-└────────┬────────┘
-         │
-    ┌────┴────┬──────────┬─────────┐
-    │         │          │         │
-┌───▼───┐ ┌──▼───┐  ┌───▼────┐ ┌──▼─────┐
-│ AX-LM │ │Power │  │ Nexus  │ │ Other  │
-│ID: 7  │ │Link  │  │Hub     │ │Devices │
-│       │ │ID: 6 │  │Controls│ │ID: 4,5 │
-└───────┘ └──────┘  │all devs│ └────────┘
-                    └────────┘
-```
+---
 
-**Control Flow:**
-- **Automated Controllers** (AX-LM, Power Link): Poll API status → Execute actions automatically
-- **Manual Controller** (Nexus): Button press → Update API → Other devices respond to status change
-- This allows both automatic and manual control of the same devices through the API
+## Sobre o Projeto
 
-## 📋 Table of Contents
+O **AXII Embedded** contém o firmware de três módulos físicos baseados em **ESP8266 (WeMos D1 Mini)** que integram o sistema AXII à infraestrutura real da sala de aula. Esses módulos se comunicam com a mesma API PHP compartilhada com o painel web e o app mobile, executando ações físicas com base no estado dos dispositivos registrados no banco de dados.
 
-- [System Architecture](#system-architecture)
-- [Components](#components)
-- [Hardware Requirements](#hardware-requirements)
-- [Software Dependencies](#software-dependencies)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [API Integration](#api-integration)
-- [OTA Updates](#ota-updates)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+O sistema AXII completo é composto por:
+- **Embedded** (este repositório) — módulos físicos IoT que atuam diretamente nos equipamentos
+- **Web** — painel de controle via navegador
+- **Mobile** — controle e monitoramento pelo celular
+- **Desktop** — cliente instalado nos computadores das salas
 
-## 🧩 Components
+---
 
-### 1. AX-LM (Lamp Controller)
-Located in `/AX-LM/`
+## Módulos
 
-Controls a lamp through a relay based on device status from the API. The lamp turns ON when the device status is "offline" and OFF when "online".
+### AX-LM — Controlador de Iluminação
+Controla a **iluminação da sala** por meio de um relé conectado ao ESP8266. Consulta a API a cada 5 segundos e liga ou desliga a luz conforme o status do dispositivo.
 
-**Features:**
-- Relay control for lamp switching
-- Status-based automatic control
-- Last connection timestamp updates
-- Circuit diagram included (circuito.pdf)
+### Power Link — Controle de Energia dos PCs
+Simula o pressionamento do **botão físico de power** dos computadores. Detecta mudanças de estado na API e envia um pulso elétrico de 500ms ao botão de energia do PC.
 
-**Device ID:** 7  
-**GPIO Pin:** D2  
-**OTA Hostname:** ESP8266-Lampada
+### Nexus — Central de Controle Manual
+Painel físico com **4 botões** que permite ao professor controlar todos os dispositivos da sala sem precisar do celular ou computador. Cada botão alterna o estado de um dispositivo na API.
 
-### 2. Power Link (PC Power Controller)
-Located in `/Power Link/`
+---
 
-Manages PC power by sending pulse signals to the power button. Detects state changes and automatically triggers power button pulses.
-
-**Features:**
-- State change detection
-- 500ms pulse generation for power button simulation
-- PC power on/off automation
-- Circuit diagrams included (circuito.png, Power link.png)
-
-**Device ID:** 6  
-**GPIO Pin:** D2  
-**OTA Hostname:** ESP8266-PowerPC
-
-### 3. Nexus (Multi-Button Control Hub)
-Located in `/Nexus/`
-
-A central control hub with 4 physical buttons for controlling multiple devices. Each button can toggle a different device's status through the API.
-
-**Features:**
-- 4 independent button inputs with debouncing
-- Direct device status toggling (online/offline)
-- LED indicator for WiFi status and button presses
-- 3D printable enclosure (model 3d/AXII Nexus.stl)
-- Circuit diagram and visual reference (circuit.pdf, nexus.png)
-
-**Button Configuration:**
-- Button 1 (D5) - PC Lab (Device ID: 7)
-- Button 2 (D6) - AC Lab (Device ID: 6)
-- Button 3 (D7) - Projector (Device ID: 4)
-- Button 4 (D8) - Lighting (Device ID: 5)
-
-**OTA Hostname:** ESP8266-Controle
-
-> **Note:** The Nexus hub provides centralized control for devices in the system. Some device IDs (like 6 and 7) may correspond to devices managed by the AX-LM and Power Link controllers, allowing multiple control methods for the same device. The Nexus provides manual button control while the other components provide automated control based on API status.
-
-## 🔧 Hardware Requirements
-
-### For Each Component:
-- **Microcontroller**: ESP8266 (WeMos D1 Mini or equivalent)
-- **Power Supply**: 5V USB power adapter
-- **WiFi Network**: 2.4GHz WiFi access point
-
-### Component-Specific Hardware:
-
-**AX-LM:**
-- 1x Relay module (5V compatible)
-- Connecting wires
-- Lamp/light fixture
-
-**Power Link:**
-- Connecting wires to PC power button
-- Optocoupler or relay (recommended for isolation)
-
-**Nexus:**
-- 4x Push buttons
-- 4x 10kΩ pull-up resistors (if not using internal pull-ups)
-- LED (built-in on ESP8266)
-- 3D printed enclosure (optional, STL file provided)
-
-## 📚 Software Dependencies
-
-### Arduino IDE Libraries:
-```
-- ESP8266WiFi (ESP8266 Core)
-- ESP8266HTTPClient (ESP8266 Core)
-- ArduinoJson (v6.x)
-- ArduinoOTA (ESP8266 Core)
-```
-
-### Installation via Arduino Library Manager:
-1. Open Arduino IDE
-2. Go to **Sketch** → **Include Library** → **Manage Libraries**
-3. Search and install:
-   - "ArduinoJson" by Benoit Blanchon (version 6.x)
-
-### ESP8266 Board Support:
-1. Go to **File** → **Preferences**
-2. Add to "Additional Board Manager URLs":
-   ```
-   http://arduino.esp8266.com/stable/package_esp8266com_index.json
-   ```
-3. Go to **Tools** → **Board** → **Boards Manager**
-4. Search for "esp8266" and install
-
-## 🚀 Installation
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Project-axii/Project-axii-embedded.git
-cd Project-axii-embedded
-```
-
-### 2. Hardware Setup
-- Connect your ESP8266 to your computer via USB
-- Wire the relay/buttons according to the circuit diagrams provided in each component folder
-- Ensure proper power supply connections
-
-### 3. Arduino IDE Setup
-- Install Arduino IDE (version 1.8.x or 2.x)
-- Install required libraries (see Software Dependencies)
-- Select your board: **Tools** → **Board** → **ESP8266 Boards** → **WeMos D1 R1**
-- Select the correct COM port: **Tools** → **Port**
-
-### 4. Upload Firmware
-- Open the desired component's `.ino` file in Arduino IDE
-- Configure your settings (see Configuration section)
-- Click **Upload** button
-- Wait for compilation and upload to complete
-
-## ⚙️ Configuration
-
-### WiFi Configuration
-In each `.ino` file, update the WiFi credentials:
-```cpp
-const char* ssid = "Your_WiFi_Name";
-const char* password = "Your_WiFi_Password";
-```
-
-### API Configuration
-Set your API endpoint:
-```cpp
-const char* apiBaseUrl = "http://your-api-server.com/api/devices";
-```
-
-### Device ID Configuration
-Each component has a specific device ID. Update if needed:
-```cpp
-const int idDispositivo = 7;  // Change to your device ID
-```
-
-### OTA Configuration
-OTA updates are secured with passwords. Default password is `admin123` (AX-LM, Power Link) or `admin` (Nexus). Update in the code:
-```cpp
-ArduinoOTA.setPassword("your_password");
-```
-
-### Nexus Button Mapping
-To change button assignments in Nexus, modify the `botoes[]` array:
-```cpp
-Botao botoes[] = {
-  {D5, deviceID, HIGH, 0, false, "Button Name"},
-  // Add more buttons...
-};
-```
-
-## 💡 Usage
-
-### Initial Power-Up
-1. Power on the ESP8266
-2. The device will attempt to connect to WiFi
-3. LED indicators will show connection status
-4. Serial monitor (115200 baud) displays debug information
-
-### AX-LM Operation
-- Device automatically queries API every 5 seconds
-- Lamp turns ON when device status is "offline"
-- Lamp turns OFF when device status is "online"
-
-### Power Link Operation
-- Monitors device status every 5 seconds
-- Detects status changes (online ↔ offline)
-- Sends 500ms pulse to PC power button on state change
-
-### Nexus Operation
-- Press any button to toggle the corresponding device
-- LED blinks when button is pressed
-- Device status switches between "online" and "offline"
-
-### Monitoring
-Connect to Serial Monitor at 115200 baud to see:
-- WiFi connection status
-- API responses
-- Device state changes
-- Error messages
-
-## 📁 Project Structure
+## Como funciona
 
 ```
-Project-axii-embedded/
-├── AX-LM/
-│   ├── wemos_lamp.ino        # Lamp controller firmware
-│   └── circuito.pdf           # Circuit diagram
-├── Power Link/
-│   ├── wemos_pc.ino           # PC power controller firmware
-│   ├── circuito.png           # Circuit diagram
-│   └── Power link.png         # Visual reference
-├── Nexus/
-│   ├── wemos-nexus.ino        # Multi-button controller firmware
-│   ├── circuit.pdf            # Circuit diagram
-│   ├── nexus.png              # Visual reference
-│   └── model 3d/
-│       └── AXII Nexus.stl     # 3D printable enclosure
-├── LICENSE                     # MIT License
-├── .gitignore                 # Git ignore rules
-└── README.md                   # This file
+┌───────────────────────────────────────────┐
+│              API AXII (PHP)               │
+│         Banco de dados de dispositivos    │
+└──────────────┬────────────────────────────┘
+               │  HTTP (GET/POST)
+    ┌──────────┼─────────────────────┐
+    ↓           ↓                    ↓
+┌─────────┐  ┌────────────┐   ┌──────────┐
+│  AX-LM  │  │ Power Link │   │  Nexus   │
+│ (Relé)  │  │ (Pulso D2) │   │(4 Botões)│
+│ ID: 7   │  │  ID: 6     │   │IDs:4,5,6,7│
+└─────────┘  └────────────┘   └──────────┘
+ Iluminação   Liga/desliga PC   Controle manual
 ```
 
-## 🔌 API Integration
+**Fluxo de controle:**
+- **AX-LM e Power Link** — controladores automáticos: consultam a API periodicamente e executam ações físicas com base no status retornado.
+- **Nexus** — controlador manual: o botão pressiona → atualiza o status na API → os outros módulos respondem automaticamente à mudança.
 
-### Expected API Endpoints
+---
 
-**GET Device Status:**
-```
-GET {apiBaseUrl}?id={deviceId}
-```
+## Módulos em Detalhe
 
-**Response Format (Option 1):**
+### AX-LM — Controlador de Iluminação
+
+| Propriedade | Valor |
+|---|---|
+| Arquivo | `AX-LM/wemos_lamp.ino` |
+| ID do Dispositivo | `7` |
+| Pino GPIO | `D2` (relé) |
+| AP de Configuração | `AX-LM_CONFIG` / senha: `12345678` |
+| OTA Hostname | `AX-LM` |
+| OTA Senha | `admin123` |
+| Intervalo de Consulta | 5 segundos |
+
+**Lógica de operação:**
+- Consulta a API a cada 5 segundos com `GET {apiBaseUrl}?id=7`
+- Se `ativo = true` e `status = "offline"` → **liga o relé** (iluminação acesa)
+- Se `ativo = false` ou `status = "online"` → **desliga o relé** (iluminação apagada)
+- Atualiza o campo `ultima_conexao` na API ao ligar o relé
+
+**Arquivos de hardware:**
+- `circuito.pdf` — diagrama do circuito elétrico
+
+---
+
+### Power Link — Controle de Energia dos PCs
+
+| Propriedade | Valor |
+|---|---|
+| Arquivo | `Power Link/wemos_pc.ino` |
+| ID do Dispositivo | `6` |
+| Pino GPIO | `D2` (pulso no botão de power) |
+| AP de Configuração | `AXII_POWERLINK` / senha: `12345678` |
+| OTA Hostname | `AXII Power Link` |
+| OTA Senha | `admin123` |
+| Duração do Pulso | 500ms |
+| Intervalo de Consulta | 5 segundos |
+
+**Lógica de operação:**
+- Consulta a API a cada 5 segundos com `GET {apiBaseUrl}?id=6`
+- Armazena o estado inicial na primeira leitura
+- Quando detecta uma **mudança de estado** (`online → offline` ou `offline → online`) → envia um pulso de 500ms no pino D2
+- O pulso simula o pressionamento físico do botão de power do PC
+- Atualiza `ultima_conexao` na API após cada acionamento
+
+**Arquivos de hardware:**
+- `circuito.png` — diagrama do circuito
+- `Power link.png` — foto/referência visual do módulo
+
+---
+
+### Nexus — Central de Controle Manual
+
+| Propriedade | Valor |
+|---|---|
+| Arquivo | `Nexus/wemos-nexus.ino` |
+| Pinos GPIO | `D5`, `D6`, `D7`, `D8` (botões) |
+| AP de Configuração | `NEXUS_CONFIG` / senha: `12345678` |
+| OTA Hostname | `ESP8266-NEXUS` |
+| OTA Senha | `admin` |
+| Debounce | 200ms |
+
+**Mapeamento de botões:**
+
+| Botão | Pino | ID Dispositivo | Equipamento |
+|---|---|---|---|
+| Botão 1 | `D5` | 7 | PC / Lab |
+| Botão 2 | `D6` | 6 | Ar-condicionado |
+| Botão 3 | `D7` | 4 | Projetor |
+| Botão 4 | `D8` | 5 | Iluminação |
+
+**Lógica de operação:**
+- Ao pressionar um botão, consulta o status atual do dispositivo na API
+- Alterna o status: `online → offline` ou `offline → online`
+- Envia o novo status via `POST` à API
+- LED embutido pisca ao pressionar um botão
+- **Reset manual:** segure o botão D5 por 3 segundos para apagar as credenciais WiFi salvas
+
+**Arquivos de hardware:**
+- `circuit.pdf` — diagrama do circuito elétrico
+- `nexus.png` — foto/referência visual do módulo
+- `model 3d/AXII Nexus.stl` — modelo 3D para impressão da carcaça
+- `model 3d/AXII Nexus.glb` — modelo 3D em formato GLB (visualização)
+
+---
+
+## Funcionalidades Comuns
+
+Todos os três módulos compartilham as seguintes funcionalidades:
+
+| Funcionalidade | Descrição |
+|---|---|
+| **Portal de Configuração WiFi** | Ao ligar sem credenciais salvas, cria um ponto de acesso WiFi próprio. O usuário conecta e acessa `http://192.168.4.1` para configurar a rede via navegador |
+| **Persistência em EEPROM** | As credenciais WiFi são salvas na memória interna do ESP8266 e sobrevivem a reinicializações |
+| **Reconexão automática** | Se o WiFi cair, tenta reconectar automaticamente. Após 5 falhas consecutivas, entra novamente em modo de configuração |
+| **OTA (Over-the-Air)** | Atualização de firmware via rede WiFi sem precisar conectar o cabo USB |
+| **Monitor Serial** | Logs detalhados via porta serial a 115200 baud para depuração |
+| **Limpeza de configuração** | Interface web com botão para apagar credenciais e retornar ao modo de configuração |
+
+---
+
+## Integração com a API
+
+Todos os módulos se comunicam com a API via HTTP. A URL base deve ser configurada na constante `apiBaseUrl` em cada arquivo `.ino`.
+
+### Endpoints utilizados
+
+| Método | Chamada | Descrição |
+|---|---|---|
+| `GET` | `{apiBaseUrl}?id={idDispositivo}` | Consulta o status atual do dispositivo |
+| `GET` | `{apiBaseUrl}?action=update&id={idDispositivo}` | Atualiza o campo `ultima_conexao` |
+| `POST` | `{apiBaseUrl}` com body JSON | Alterna o status do dispositivo (Nexus) |
+
+### Formatos de resposta suportados
+
+Os módulos aceitam dois formatos de resposta da API:
+
 ```json
+// Formato 1
 {
   "success": true,
   "data": {
     "id": 7,
-    "nome": "Device Name",
+    "nome": "Iluminação Sala A",
     "status": "online",
     "ativo": true
   }
 }
-```
 
-**Response Format (Option 2):**
-```json
+// Formato 2 (resposta direta)
 {
   "id": 7,
-  "nome": "Device Name",
+  "nome": "Iluminação Sala A",
   "status": "online",
   "ativo": true
 }
 ```
 
-**POST Update Device Status (Nexus):**
-```
+### Payload de atualização de status (Nexus)
+
+```json
 POST {apiBaseUrl}
 Content-Type: application/json
 
@@ -310,85 +215,178 @@ Content-Type: application/json
 }
 ```
 
-**GET Update Last Connection:**
-```
-GET {apiBaseUrl}?action=update&id={deviceId}
-```
+---
 
-## 🔄 OTA Updates
+## Requisitos de Hardware
 
-### Updating via Arduino IDE
+### Componentes comuns (todos os módulos)
+- **Microcontrolador:** ESP8266 — WeMos D1 Mini (ou equivalente)
+- **Alimentação:** 5V via USB
+- **Rede WiFi:** 2,4 GHz (o ESP8266 não suporta 5 GHz)
 
-1. Ensure device is on the same network
-2. After first upload, device appears in **Tools** → **Port**
-3. Select network port (e.g., "ESP8266-Lampada at 192.168.1.100")
-4. Enter OTA password when prompted
-5. Upload new firmware
+### Componentes por módulo
 
-### OTA Hostnames
-- AX-LM: `ESP8266-Lampada`
-- Power Link: `ESP8266-PowerPC`
-- Nexus: `ESP8266-Controle`
-
-### Security
-Always change default OTA passwords in production environments!
-
-## 🔍 Troubleshooting
-
-### WiFi Connection Issues
-- Verify SSID and password are correct
-- Check if WiFi is 2.4GHz (ESP8266 doesn't support 5GHz)
-- Ensure WiFi signal strength is adequate
-- Check serial monitor for connection attempts
-
-### API Connection Failures
-- Verify API URL is accessible from the device network
-- Check if API returns expected JSON format
-- Monitor serial output for HTTP response codes
-- Test API endpoint with tools like Postman or curl
-
-### Relay/Button Not Responding
-- Check GPIO pin connections
-- Verify power supply is adequate
-- Test with a simple LED blink sketch first
-- Review serial monitor for debug messages
-
-### OTA Update Fails
-- Verify device is powered on and connected to WiFi
-- Check OTA password is correct
-- Ensure sufficient flash memory space
-- Try power cycling the device
-
-### Device Not Appearing in Network Ports
-- Wait 30-60 seconds after device connects to WiFi
-- Check if device and computer are on same network
-- Verify ArduinoOTA.begin() is called in setup()
-- Check firewall settings
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-Copyright (c) 2025 AXII
-
-## 👥 Authors
-
-**AXII Team**
-
-## 🙏 Acknowledgments
-
-- ESP8266 Community
-- Arduino Community
-- ArduinoJson library by Benoit Blanchon
-
-## 📧 Contact
-
-For questions or support, please open an issue on GitHub.
+| Módulo | Hardware adicional |
+|---|---|
+| **AX-LM** | 1× módulo relé (5V), fiação, luminária |
+| **Power Link** | Fios de conexão ao botão de power do PC; optoacoplador ou relé recomendado para isolação elétrica |
+| **Nexus** | 4× push buttons, LED embutido no ESP8266, carcaça impressa em 3D (opcional — arquivo STL incluso) |
 
 ---
 
-**⚠️ Safety Warning:** When working with mains electricity (for lamp control), ensure proper safety measures and consult with a qualified electrician. Always disconnect power before making any electrical connections.
+## Bibliotecas Arduino Necessárias
+
+| Biblioteca | Origem | Uso |
+|---|---|---|
+| `ESP8266WiFi` | ESP8266 Core | Conexão WiFi |
+| `ESP8266WebServer` | ESP8266 Core | Portal de configuração captive |
+| `ESP8266HTTPClient` | ESP8266 Core | Requisições HTTP à API |
+| `ArduinoJson` | Benoit Blanchon (v6.x) | Parsing das respostas JSON da API |
+| `ArduinoOTA` | ESP8266 Core | Atualização de firmware via rede |
+| `EEPROM` | ESP8266 Core | Persistência das credenciais WiFi |
+
+---
+
+## Como Programar
+
+### 1. Instalar o Arduino IDE
+
+Baixe o [Arduino IDE](https://www.arduino.cc/en/software) (versão 1.8.x ou 2.x).
+
+### 2. Adicionar suporte ao ESP8266
+
+1. Abra o Arduino IDE → **Arquivo** → **Preferências**
+2. Em "URLs adicionais para gerenciadores de placas", adicione:
+   ```
+   http://arduino.esp8266.com/stable/package_esp8266com_index.json
+   ```
+3. Vá em **Ferramentas** → **Placa** → **Gerenciador de Placas**
+4. Pesquise `esp8266` e instale
+
+### 3. Instalar bibliotecas
+
+1. Vá em **Sketch** → **Incluir Biblioteca** → **Gerenciar Bibliotecas**
+2. Pesquise e instale: **ArduinoJson** (versão 6.x, autor: Benoit Blanchon)
+3. As demais bibliotecas vêm com o ESP8266 Core
+
+### 4. Configurar o firmware
+
+Abra o arquivo `.ino` do módulo desejado e configure:
+
+```cpp
+// URL da API (substitua pelo endereço real)
+const char* apiBaseUrl = "http://seu-servidor.com/tcc-axii/Project-Axii-api/api/devices/list.php";
+
+// ID do dispositivo no banco de dados (verifique na API)
+const int idDispositivo = 7;
+```
+
+> As credenciais WiFi **não precisam** ser inseridas no código — elas são configuradas pelo portal web após a primeira inicialização.
+
+### 5. Fazer upload
+
+1. Conecte o ESP8266 via USB ao computador
+2. Selecione a placa: **Ferramentas** → **Placa** → **ESP8266 Boards** → **WeMos D1 R1**
+3. Selecione a porta COM correta em **Ferramentas** → **Porta**
+4. Clique em **Upload** (→) e aguarde a compilação e gravação
+
+---
+
+## Configuração WiFi no Dispositivo
+
+Após o upload, na primeira inicialização (ou após limpar as credenciais):
+
+1. O módulo cria uma rede WiFi própria (ex: `AX-LM_CONFIG`)
+2. Conecte seu celular ou computador a essa rede (senha: `12345678`)
+3. Acesse `http://192.168.4.1` no navegador
+4. Preencha o SSID e a senha da sua rede WiFi da escola
+5. Clique em **Conectar à Rede** — o dispositivo reinicia e entra em operação normal
+
+---
+
+## Atualização OTA (Over-the-Air)
+
+Após a configuração inicial, os módulos podem ser atualizados sem cabo USB:
+
+1. Certifique-se de que o dispositivo está ligado e na mesma rede
+2. No Arduino IDE, vá em **Ferramentas** → **Porta** e selecione o dispositivo na rede
+3. Digite a senha OTA quando solicitado
+4. Faça o upload normalmente
+
+**Senhas e hostnames OTA:**
+
+| Módulo | Hostname OTA | Senha OTA |
+|---|---|---|
+| AX-LM | `AX-LM` | `admin123` |
+| Power Link | `AXII Power Link` | `admin123` |
+| Nexus | `ESP8266-NEXUS` | `admin` |
+
+---
+
+## Estrutura do Repositório
+
+```
+Project-axii-embedded/
+├── AX-LM/
+│   ├── wemos_lamp.ino        # Firmware do controlador de iluminação
+│   └── circuito.pdf          # Diagrama do circuito elétrico
+│
+├── Power Link/
+│   ├── wemos_pc.ino          # Firmware do controlador de energia dos PCs
+│   ├── circuito.png          # Diagrama do circuito
+│   └── Power link.png        # Referência visual do módulo
+│
+├── Nexus/
+│   ├── wemos-nexus.ino       # Firmware da central de controle manual
+│   ├── circuit.pdf           # Diagrama do circuito elétrico
+│   ├── nexus.png             # Foto/referência visual do módulo
+│   └── model 3d/
+│       ├── AXII Nexus.stl    # Modelo 3D para impressão da carcaça
+│       ├── AXII Nexus.glb    # Modelo 3D para visualização
+│       └── AXII Nexus.zip    # Arquivos do modelo compactados
+│
+└── LICENSE
+```
+
+---
+
+## Depuração (Serial Monitor)
+
+Conecte o cabo USB e abra o Monitor Serial do Arduino IDE em **115200 baud** para ver os logs em tempo real:
+
+```
+========================================
+    AXII - Controle de AX-LM
+   com Configuração WiFi Integrada
+========================================
+
+Credenciais encontradas:
+SSID: MinhaRedeEscola
+Conectando em: MinhaRedaEscola
+...............
+ WiFi conectado!
+IP: 192.168.1.105
+Sistema pronto para uso!
+
+--- Consultando Dispositivo ---
+URL: http://servidor.com/api/devices/list.php?id=7
+Código HTTP: 200
+Status: offline | Ativo: SIM
+>>> RELÉ LIGADO - AX-LM ACESA <<<
+```
+
+---
+
+## Avisos de Segurança
+
+> **Atenção:** O módulo **AX-LM** pode estar conectado à rede elétrica (iluminação de 127V/220V). Sempre utilize um relé adequado com isolação elétrica e, se necessário, consulte um eletricista. Nunca manipule fiação elétrica com o circuito energizado.
+
+> O módulo **Power Link** é conectado ao botão de power do PC. Recomenda-se o uso de um optoacoplador para isolar eletricamente o ESP8266 do computador.
+
+> Altere as senhas OTA padrão (`admin123` / `admin`) antes de usar em ambiente de produção.
+
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a [Licença MIT](LICENSE).
